@@ -27,11 +27,12 @@ import {
   Award,
   AlertCircle
 } from 'lucide-react';
-import { UnitData, CreativeExamPassage } from '../types/english';
+import confetti from 'canvas-confetti';
+import { UnitData, CreativeExamPassage, QuizQuestion } from '../types/english';
 import { AudioButton } from '../components/AudioButton';
 import { speechService } from '../services/speechService';
 import { creativeExamsData } from '../data/creativeExamsData';
-import { generateCreativeExam } from '../services/aiService';
+import { generateCreativeExam, generateQuizQuestions } from '../services/aiService';
 
 interface UnitDetailPageProps {
   unit: UnitData;
@@ -84,6 +85,77 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
     setStudentWriting('');
     setAiExamError(null);
   }, [unit.id]);
+
+  // Unit Quiz States & AI Generator
+  const [quizzesList, setQuizzesList] = useState<QuizQuestion[]>(unit.quizzes);
+  const [isAiQuizLoading, setIsAiQuizLoading] = useState(false);
+  const [aiQuizError, setAiQuizError] = useState<string | null>(null);
+  const [quizTestMode, setQuizTestMode] = useState<boolean>(true);
+  const [userSelectedAnswers, setUserSelectedAnswers] = useState<Record<string, string>>({});
+  const [quizDifficulty, setQuizDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+
+  // Reset quiz state when active unit changes
+  useEffect(() => {
+    setQuizzesList(unit.quizzes);
+    setUserSelectedAnswers({});
+    setAiQuizError(null);
+  }, [unit.id, unit.quizzes]);
+
+  // Handle generating fresh AI Quizzes for this unit
+  const handleGenerateAiQuiz = async () => {
+    setIsAiQuizLoading(true);
+    setAiQuizError(null);
+
+    try {
+      const freshQuizzes = await generateQuizQuestions({
+        unitId: unit.id,
+        topic: unit.title,
+        count: 5,
+        difficulty: quizDifficulty,
+      });
+
+      if (freshQuizzes && freshQuizzes.length > 0) {
+        setQuizzesList(freshQuizzes);
+        setUserSelectedAnswers({});
+        setQuizTestMode(true);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiQuizError(err?.message || 'এআই কুইজ তৈরিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setIsAiQuizLoading(false);
+    }
+  };
+
+  const handleResetToDefaultQuiz = () => {
+    setQuizzesList(unit.quizzes);
+    setUserSelectedAnswers({});
+    setAiQuizError(null);
+  };
+
+  const handleSelectQuizOption = (quizId: string, option: string) => {
+    if (!quizTestMode) return;
+    if (userSelectedAnswers[quizId]) return; // lock once answered
+
+    const newAnswers = { ...userSelectedAnswers, [quizId]: option };
+    setUserSelectedAnswers(newAnswers);
+
+    const answeredCount = Object.keys(newAnswers).length;
+    if (answeredCount === quizzesList.length) {
+      const correctCount = quizzesList.filter((q) => newAnswers[q.id] === q.correctAnswer).length;
+      if (quizzesList.length > 0 && correctCount / quizzesList.length >= 0.7) {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+      }
+    }
+  };
+
+  const answeredQuizCount = Object.keys(userSelectedAnswers).length;
+  const correctQuizScore = quizzesList.filter((q) => userSelectedAnswers[q.id] === q.correctAnswer).length;
+  const isQuizAllAnswered = quizzesList.length > 0 && answeredQuizCount === quizzesList.length;
 
   // Handle generating fresh AI Creative Exam
   const handleGenerateAiExam = async (type: 'seen' | 'unseen') => {
@@ -260,7 +332,12 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
           { id: 'vocabulary', label: `শব্দার্থ (${unit.vocabulary.length})`, icon: Languages },
           { id: 'grammar', label: 'গ্রামার সহায়িকা (Grammar)', icon: Sparkles },
           { id: 'creative', label: 'সৃজনশীল পরীক্ষা (Creative Exam)', icon: GraduationCap, badge: 'মডেল টেস্ট' },
-          { id: 'qa', label: `কুইজ মূল্যায়ন (${unit.quizzes.length})`, icon: HelpCircle },
+          {
+            id: 'qa',
+            label: `কুইজ মূল্যায়ন (${quizzesList.length})`,
+            icon: HelpCircle,
+            badge: quizzesList.some((q) => q.source === 'ai') ? 'AI কুইজ' : undefined,
+          },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1030,57 +1107,328 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 5: QA / Quizzes */}
+      {/* Tab 5: QA / Quizzes with AI Generator & Interactive Lab */}
       {activeTab === 'qa' && (
-        <div className="space-y-4">
-          {unit.quizzes.map((quiz) => (
-            <div
-              key={quiz.id}
-              className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <span className="text-xs font-bold text-indigo-600 font-english uppercase">
-                    অধ্যায় মূল্যায়ন কুইজ
-                  </span>
-                  <h3 className="text-base font-bold text-slate-900 font-english">
-                    {quiz.question}
-                  </h3>
-                  {quiz.questionBn && (
-                    <h4 className="text-xs text-slate-500 font-bangla">{quiz.questionBn}</h4>
-                  )}
+        <div className="space-y-6">
+          {/* AI Quiz Control Banner */}
+          <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-violet-950 rounded-2xl p-5 sm:p-6 text-white shadow-lg space-y-4 border border-indigo-700/50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
+                  <Sparkles size={13} className="text-amber-300" />
+                  <span className="font-bangla">Groq AI চালিত ডায়নামিক কুইজ ল্যাব</span>
                 </div>
-                <AudioButton text={quiz.question} size="sm" />
+                <h3 className="text-lg sm:text-xl font-bold font-bangla text-white flex items-center gap-2">
+                  <HelpCircle className="text-amber-400" size={22} />
+                  <span>অধ্যায় মূল্যায়ন ও এআই কুইজ টেস্ট</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-indigo-200/90 font-bangla max-w-xl leading-relaxed">
+                  পাঠ্যবইয়ের প্রশ্নের পাশাপাশি কৃত্রিম বুদ্ধিমত্তা (AI) দিয়ে {unit.title}-এর ওপর যতবার ইচ্ছা সম্পূর্ণ নতুন বহুনির্বাচনী প্রশ্ন তৈরি করে নিজেকে যাচাই করো।
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {quiz.options.map((opt, optIdx) => (
-                  <div
-                    key={optIdx}
-                    className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                      opt === quiz.correctAnswer
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                        : 'bg-slate-50 border-slate-200 text-slate-700'
-                    }`}
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleGenerateAiQuiz}
+                  disabled={isAiQuizLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-95 disabled:opacity-60 font-bangla cursor-pointer"
+                >
+                  {isAiQuizLoading ? (
+                    <Loader2 size={16} className="animate-spin text-slate-950" />
+                  ) : (
+                    <Sparkles size={16} className="text-slate-950" />
+                  )}
+                  <span>
+                    {isAiQuizLoading ? 'এআই প্রশ্ন তৈরি হচ্ছে...' : 'নতুন ৫টি এআই কুইজ তৈরি করুন'}
+                  </span>
+                </button>
+
+                {quizzesList.some((q) => q.source === 'ai') && (
+                  <button
+                    type="button"
+                    onClick={handleResetToDefaultQuiz}
+                    disabled={isAiQuizLoading}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white font-semibold text-xs border border-white/15 transition-all font-bangla cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-english">{opt}</span>
-                      {opt === quiz.correctAnswer && (
-                        <span className="text-xs text-emerald-700 font-bold font-bangla">
-                          ✓ সঠিক উত্তর
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-100 font-bangla">
-                <strong>ব্যাখ্যা: </strong>
-                {quiz.explanationBn || quiz.explanation}
+                    <RotateCcw size={14} />
+                    <span>পাঠ্যবইয়ের কুইজ</span>
+                  </button>
+                )}
               </div>
             </div>
-          ))}
+
+            {/* Quick Filter Bar: Difficulty & Mode */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-indigo-800/60 text-xs font-bangla">
+              <div className="flex items-center gap-2">
+                <span className="text-indigo-300 font-medium">কঠিনতার স্তর:</span>
+                {(['easy', 'medium', 'hard'] as const).map((diff) => {
+                  const labels = { easy: 'সহজ', medium: 'মাঝারি', hard: 'চ্যালেঞ্জিং' };
+                  const isSelected = quizDifficulty === diff;
+                  return (
+                    <button
+                      key={diff}
+                      type="button"
+                      onClick={() => setQuizDifficulty(diff)}
+                      className={`px-2.5 py-1 rounded-lg transition-all font-semibold cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 shadow-sm'
+                          : 'bg-white/10 text-indigo-200 hover:bg-white/20'
+                      }`}
+                    >
+                      {labels[diff]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-indigo-300 font-medium">মোড:</span>
+                <button
+                  type="button"
+                  onClick={() => setQuizTestMode(!quizTestMode)}
+                  className={`px-3 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 cursor-pointer ${
+                    quizTestMode
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-emerald-600 text-white shadow-sm'
+                  }`}
+                >
+                  {quizTestMode ? <PenTool size={12} /> : <Eye size={12} />}
+                  <span>{quizTestMode ? 'পরীক্ষা মোড (Test Mode)' : 'উত্তরমালা মোড (Study)'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* AI Generation Error Message if any */}
+            {aiQuizError && (
+              <div className="p-3 bg-red-500/20 border border-red-400/40 rounded-xl text-red-200 text-xs font-bangla flex items-center gap-2">
+                <AlertCircle size={15} className="text-red-300 shrink-0" />
+                <span>{aiQuizError}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Test Mode Scorecard / Progress Header */}
+          {quizTestMode && (
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold font-english text-base">
+                  {quizzesList.length}
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 font-bangla">
+                    উত্তর দেওয়া হয়েছে: <span className="font-bold text-slate-800">{answeredQuizCount} / {quizzesList.length}</span>
+                  </div>
+                  <div className="text-xs font-bold text-indigo-600 font-bangla">
+                    বর্তমান স্কোর: {correctQuizScore} / {answeredQuizCount} {answeredQuizCount > 0 && `(${Math.round((correctQuizScore / answeredQuizCount) * 100)}%)`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full sm:w-48 bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full transition-all duration-300 rounded-full"
+                  style={{ width: `${(answeredQuizCount / Math.max(quizzesList.length, 1)) * 100}%` }}
+                />
+              </div>
+
+              {/* Reset Answers Button */}
+              {answeredQuizCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setUserSelectedAnswers({})}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold font-bangla transition-colors shrink-0 cursor-pointer"
+                >
+                  <RotateCcw size={13} />
+                  <span>পুনরায় শুরু করুন</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Completion Celebration Banner */}
+          {quizTestMode && isQuizAllAnswered && (
+            <div className="p-5 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="p-3 bg-white/20 rounded-2xl shrink-0">
+                  <Award size={32} className="text-yellow-200" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold font-bangla">
+                    {correctQuizScore / quizzesList.length >= 0.8
+                      ? 'অসাধারণ ফলাফল! তুমি চমৎকার দক্ষতা অর্জন করেছো! 🏆'
+                      : correctQuizScore / quizzesList.length >= 0.6
+                      ? 'দারুণ চেষ্টা! ভালো ফলাফল হয়েছে! 🌟'
+                      : 'ভালো চেষ্টা! আরেকবার অনুশীলন করে নাও! 💪'}
+                  </h4>
+                  <p className="text-xs text-emerald-100 font-bangla mt-0.5">
+                    মোট স্কোর: {correctQuizScore} / {quizzesList.length} (
+                    {Math.round((correctQuizScore / quizzesList.length) * 100)}%)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setUserSelectedAnswers({})}
+                  className="px-4 py-2 bg-white text-emerald-900 rounded-xl font-bold text-xs hover:bg-emerald-50 transition-colors shadow-sm font-bangla cursor-pointer"
+                >
+                  আবার পরীক্ষা দাও
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateAiQuiz}
+                  disabled={isAiQuizLoading}
+                  className="px-4 py-2 bg-emerald-900/40 border border-white/30 text-white rounded-xl font-bold text-xs hover:bg-emerald-900/60 transition-colors shadow-sm font-bangla cursor-pointer flex items-center gap-1.5"
+                >
+                  <Sparkles size={14} className="text-yellow-300" />
+                  <span>আরও ৫টি এআই প্রশ্ন</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quiz Cards List */}
+          <div className="space-y-4">
+            {quizzesList.map((quiz, qIdx) => {
+              const selectedOption = userSelectedAnswers[quiz.id];
+              const isAnswered = Boolean(selectedOption);
+              const isCorrect = selectedOption === quiz.correctAnswer;
+
+              return (
+                <div
+                  key={quiz.id}
+                  className={`p-5 sm:p-6 bg-white rounded-2xl border transition-all shadow-sm space-y-4 ${
+                    isAnswered && quizTestMode
+                      ? isCorrect
+                        ? 'border-emerald-300 bg-emerald-50/10'
+                        : 'border-red-200 bg-red-50/10'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {/* Question Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bangla">
+                          প্রশ্ন {qIdx + 1}
+                        </span>
+                        {quiz.source === 'ai' && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bangla flex items-center gap-1">
+                            <Sparkles size={10} />
+                            <span>AI প্রশ্ন</span>
+                          </span>
+                        )}
+                        {quiz.difficulty && (
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase font-english">
+                            • {quiz.difficulty}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 font-english leading-snug">
+                        {quiz.question}
+                      </h3>
+                      {quiz.questionBn && (
+                        <h4 className="text-xs sm:text-sm text-slate-500 font-bangla">
+                          {quiz.questionBn}
+                        </h4>
+                      )}
+                    </div>
+                    <AudioButton text={quiz.question} size="sm" />
+                  </div>
+
+                  {/* Options Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {quiz.options.map((opt, optIdx) => {
+                      const isOptionSelected = selectedOption === opt;
+                      const isOptionCorrect = opt === quiz.correctAnswer;
+
+                      let btnStyle = 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300';
+                      let statusBadge = null;
+
+                      if (!quizTestMode) {
+                        // Study mode: Always reveal correct answer
+                        if (isOptionCorrect) {
+                          btnStyle = 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold';
+                          statusBadge = (
+                            <span className="text-xs text-emerald-700 font-bold font-bangla flex items-center gap-1">
+                              <Check size={14} /> সঠিক উত্তর
+                            </span>
+                          );
+                        }
+                      } else if (isAnswered) {
+                        // Test mode: User already answered
+                        if (isOptionSelected && isCorrect) {
+                          btnStyle = 'bg-emerald-100/80 border-emerald-500 text-emerald-950 font-bold shadow-sm';
+                          statusBadge = (
+                            <span className="text-xs text-emerald-700 font-bold font-bangla flex items-center gap-1">
+                              <Check size={14} /> তোমার উত্তর (সঠিক!)
+                            </span>
+                          );
+                        } else if (isOptionSelected && !isCorrect) {
+                          btnStyle = 'bg-red-50 border-red-400 text-red-900 font-bold shadow-sm';
+                          statusBadge = (
+                            <span className="text-xs text-red-600 font-bold font-bangla flex items-center gap-1">
+                              <X size={14} /> তোমার উত্তর (ভুল)
+                            </span>
+                          );
+                        } else if (isOptionCorrect) {
+                          btnStyle = 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-semibold';
+                          statusBadge = (
+                            <span className="text-xs text-emerald-600 font-bold font-bangla flex items-center gap-1">
+                              <Check size={13} /> সঠিক উত্তর
+                            </span>
+                          );
+                        } else {
+                          btnStyle = 'bg-slate-50/50 border-slate-100 text-slate-400 opacity-60';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          onClick={() => handleSelectQuizOption(quiz.id, opt)}
+                          disabled={!quizTestMode || isAnswered}
+                          className={`p-3.5 rounded-xl border text-sm text-left transition-all flex items-center justify-between gap-2 cursor-pointer disabled:cursor-default ${btnStyle}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-6 h-6 rounded-lg bg-white border border-slate-200/80 text-xs font-bold text-slate-600 flex items-center justify-center font-english shrink-0">
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            <span className="font-english leading-tight">{opt}</span>
+                          </div>
+                          {statusBadge}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explanation Box (Visible if answered in test mode OR in study mode) */}
+                  {(!quizTestMode || isAnswered) && (
+                    <div className="p-3.5 bg-slate-50 rounded-xl text-xs text-slate-700 border border-slate-200/80 font-bangla space-y-1 animate-fade-in">
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="text-indigo-600">💡 ব্যাখ্যা ও নিয়ম:</span>
+                        {quiz.explanation && (
+                          <span className="text-slate-600 font-english font-normal">
+                            {quiz.explanation}
+                          </span>
+                        )}
+                      </div>
+                      {quiz.explanationBn && (
+                        <p className="text-slate-600 leading-relaxed">
+                          {quiz.explanationBn}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

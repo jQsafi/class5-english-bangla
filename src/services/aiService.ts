@@ -102,16 +102,45 @@ export async function sendChatMessage(messages: ChatMessage[], apiKey?: string):
 
 function extractJson(text: string): any {
   const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const firstBrace = clean.indexOf('{');
-  const lastBrace = clean.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return JSON.parse(clean.slice(firstBrace, lastBrace + 1));
+
+  // Try direct parse first
+  try {
+    return JSON.parse(clean);
+  } catch {
+    // Continue to slice extraction
   }
+
   const firstBracket = clean.indexOf('[');
   const lastBracket = clean.lastIndexOf(']');
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+
+  // If bracket exists and starts before brace (or no brace exists), extract array
+  if (
+    firstBracket !== -1 &&
+    lastBracket !== -1 &&
+    lastBracket > firstBracket &&
+    (firstBrace === -1 || firstBracket < firstBrace)
+  ) {
+    try {
+      return JSON.parse(clean.slice(firstBracket, lastBracket + 1));
+    } catch {
+      // ignore and try brace
+    }
+  }
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(clean.slice(firstBrace, lastBrace + 1));
+    } catch {
+      // ignore
+    }
+  }
+
   if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
     return JSON.parse(clean.slice(firstBracket, lastBracket + 1));
   }
+
   return JSON.parse(clean);
 }
 
@@ -487,9 +516,10 @@ Important rules:
 - Output ONLY the valid JSON array directly. Do NOT include markdown backticks or commentary.`;
 
   const candidateModels = [
+    'openai/gpt-oss-120b',
     'qwen/qwen3.8-27b',
     'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
   ];
 
   let lastError = '';
@@ -645,9 +675,10 @@ Requirements:
 - Output ONLY valid JSON directly without markdown code fences or conversational prefixes.`;
 
   const candidateModels = [
+    'openai/gpt-oss-120b',
     'qwen/qwen3.8-27b',
     'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
   ];
 
   let lastError = '';
