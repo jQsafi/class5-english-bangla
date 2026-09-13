@@ -379,6 +379,20 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
       {/* Tab 3: Grammar */}
       {activeTab === 'grammar' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+            <div>
+              <div className="text-xs font-bold text-indigo-700 font-bangla">এই ইউনিটের ব্যাকরণ নিয়ম</div>
+              <div className="text-xs text-slate-500 font-bangla">আরও ১০০টি পূর্ণাঙ্গ ব্যাকরণ বিষয় পড়তে ব্যাকরণ ল্যাব দেখুন</div>
+            </div>
+            <a
+              href="#grammar"
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold font-bangla flex items-center gap-1 shadow-sm transition-all"
+            >
+              <span>১০০টি ব্যাকরণ দেখুন</span>
+              <ChevronRight size={14} />
+            </a>
+          </div>
+
           {unit.grammar.map((rule) => (
             <div
               key={rule.id}
@@ -391,6 +405,17 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
                 <h3 className="text-lg font-bold text-slate-900 font-english">{rule.title}</h3>
                 <h4 className="text-sm font-semibold text-slate-600 font-bangla">{rule.titleBn}</h4>
               </div>
+
+              {rule.formula && (
+                <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-100">
+                  <div className="text-[11px] font-bold text-purple-900 uppercase font-bangla mb-1">
+                    📐 গঠন কাঠামো / সূত্র:
+                  </div>
+                  <div className="text-xs font-mono font-semibold text-purple-950 bg-white/80 px-3 py-1.5 rounded-lg border border-purple-200 overflow-x-auto">
+                    {rule.formula}
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 bg-indigo-50/60 rounded-xl text-slate-800 text-sm leading-relaxed border border-indigo-100 font-bangla">
                 {rule.explanationBn}
@@ -418,6 +443,22 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
                   </div>
                 ))}
               </div>
+
+              {rule.commonMistakes && rule.commonMistakes.length > 0 && (
+                <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-200 space-y-2 text-xs">
+                  <div className="font-bold text-rose-800 font-bangla">⚠️ সাধারণ ভুল ও সঠিক রূপ:</div>
+                  {rule.commonMistakes.map((m, mIdx) => (
+                    <div key={mIdx} className="bg-white p-2.5 rounded-lg border border-rose-100 space-y-1">
+                      <div className="font-english">
+                        <span className="text-rose-600 font-bold">❌ </span>
+                        <span className="line-through text-slate-600">{m.incorrect}</span>
+                        <span className="mx-2 font-bold text-emerald-700">➜ ✅ {m.correct}</span>
+                      </div>
+                      <div className="text-slate-600 font-bangla text-[11px]">💡 {m.reasonBn || m.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {rule.tips && (
                 <div className="p-3 bg-amber-50 rounded-xl text-xs text-amber-900 border border-amber-200 font-medium">

@@ -56,9 +56,12 @@ export interface VocabularyItem {
 
 export interface GrammarRule {
   id: string;
-  unitId: number;
+  unitId?: number;
+  category?: 'parts_of_speech' | 'tenses' | 'sentences' | 'articles' | 'punctuation' | 'number_gender' | 'degrees' | 'modals' | 'connectors' | string;
+  categoryBn?: string;
   title: string;
   titleBn: string;
+  formula?: string;
   explanation: string;
   explanationBn: string;
   examples: Array<{
@@ -67,6 +70,14 @@ export interface GrammarRule {
     note?: string;
   }>;
   tips?: string;
+  commonMistakes?: Array<{
+    incorrect: string;
+    correct: string;
+    reason?: string;
+    reasonBn?: string;
+  }>;
+  source?: 'curriculum' | 'ai' | 'textbook' | 'ai_generated';
+  createdAt?: number;
 }
 
 export interface QuizQuestion {

@@ -1,4 +1,4 @@
-import { VocabularyItem } from '../types/english';
+import { VocabularyItem, GrammarRule } from '../types/english';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -328,4 +328,100 @@ Do not include markdown or conversational prefixes, output raw JSON array only.`
 
   throw new Error(lastError || 'এআই শব্দ জেনারেশনে সমস্যা হয়েছে।');
 }
+
+/**
+ * AI Grammar Assistant:
+ * Explains any grammar rule, concept, or student query with formulas, examples, and tips.
+ */
+export async function explainGrammarTopic(
+  query: string,
+  customApiKey?: string
+): Promise<GrammarRule> {
+  const key =
+    customApiKey ||
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    localStorage.getItem('class5_groq_key') ||
+    getDefaultKey();
+
+  const prompt = `You are an expert English grammar teacher for Bangladeshi Class 5 elementary students (NCTB English curriculum).
+For the topic or question: "${query.trim()}", return a student-friendly, crystal-clear grammar explanation formatted strictly as a single valid JSON object.
+Rules:
+1. "title": English title of the grammar rule (e.g. "Present Continuous Tense", "Use of Prepositions (in, on, at)").
+2. "titleBn": Clear Bengali title (e.g. "ঘটমান বর্তমান কাল (Present Continuous Tense)", "Preposition (in, on, at) এর সঠিক ব্যবহার").
+3. "category": Must be one of: "parts_of_speech" | "tenses" | "sentences" | "articles" | "punctuation" | "number_gender" | "degrees" | "modals" | "connectors".
+4. "categoryBn": Bengali category name (e.g. "কাল ও সময় (Tenses)", "পদ প্রকরণ (Parts of Speech)").
+5. "formula": Simple structure/formula if applicable (e.g. "Subject + am/is/are + verb-ing + Object").
+6. "explanationBn": Warm, easy-to-understand explanation in fluent Bengali tailored for 9-11 year old students.
+7. "explanation": Simple English summary for students.
+8. "examples": Array of 2 to 4 clear, everyday examples with:
+   - "en": English sentence
+   - "bn": Bengali translation
+   - "note": helpful grammar breakdown note
+9. "tips": A memorable shortcut tip or rhyme in Bengali for remembering the rule.
+10. "commonMistakes": Array of 1 to 2 common mistakes students make:
+   - "incorrect": wrong sentence
+   - "correct": correct sentence
+   - "reason": why it is wrong in Bengali.
+
+Output raw JSON object only without markdown backticks or conversational filler.`;
+
+  const candidateModels = [
+    'qwen/qwen3.8-27b',
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-120b',
+  ];
+
+  let lastError = '';
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+          max_tokens: 1200,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        lastError = err?.error?.message || `Status ${response.status}`;
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      const parsed = extractJson(content);
+
+      const rule: GrammarRule = {
+        id: `ai-grammar-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        title: parsed.title || query,
+        titleBn: parsed.titleBn || query,
+        category: parsed.category || 'parts_of_speech',
+        categoryBn: parsed.categoryBn || 'সাধারণ ব্যাকরণ',
+        formula: parsed.formula || undefined,
+        explanation: parsed.explanation || '',
+        explanationBn: parsed.explanationBn || '',
+        examples: Array.isArray(parsed.examples) ? parsed.examples : [],
+        tips: parsed.tips || undefined,
+        commonMistakes: Array.isArray(parsed.commonMistakes) ? parsed.commonMistakes : undefined,
+        source: 'ai',
+        createdAt: Date.now(),
+      };
+
+      return rule;
+    } catch (err: any) {
+      lastError = err.message || String(err);
+    }
+  }
+
+  throw new Error(lastError || 'ব্যাকরণ এআই সংযোগে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+}
+
 
