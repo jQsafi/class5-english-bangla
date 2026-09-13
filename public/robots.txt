@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Host
+Host: https://jqsafi.github.io
+
+# Sitemap
+Sitemap: https://jqsafi.github.io/class5-english-bangla/sitemap.xml

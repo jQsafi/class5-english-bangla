@@ -53,22 +53,50 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Update dynamic document.title and send analytics events on route changes
+  // Update dynamic document.title, meta tags, and send analytics events on route changes
   useEffect(() => {
-    let title = 'পঞ্চম শ্রেণি ইংরেজি পাঠশালা - English for Today ২০২৬ সম্পূর্ণ সমাধান';
+    let title = '৫ম শ্রেণি ইংরেজি পাঠশালা | English for Today ২০২৬ সম্পূর্ণ সমাধান';
+    let description =
+      'NCTB পঞ্চম শ্রেণির নতুন ইংরেজি বইয়ের (English for Today 2026) ২০টি ইউনিটের পূর্ণাঙ্গ বাংলা অনুবাদ, অডিও সঠিক উচ্চারণ, শব্দভাণ্ডার, ব্যাকরণ ও সৃজনশীল পরীক্ষা ল্যাব।';
     const activeUnit = unitsData.find((u) => u.id === activeUnitId);
 
     if (currentPage === 'unit' && activeUnit) {
       title = `Unit ${activeUnit.unitNumber}: ${activeUnit.title} (${activeUnit.titleBn}) - ৫ম শ্রেণি ইংরেজি`;
+      description = `Unit ${activeUnit.unitNumber}: ${activeUnit.title} (${activeUnit.titleBn}) এর পাঠ্যবইয়ের পূর্ণাঙ্গ বাংলা অনুবাদ, অডিও উচ্চারণ, শব্দার্থ, ব্যাকরণ ও সমাপনী পরীক্ষার সৃজনশীল প্রশ্ন সেট।`;
     } else if (currentPage === 'vocabulary') {
       title = 'শব্দভাণ্ডার ও ফ্ল্যাশ কার্ড (Vocabulary Bank) - ৫ম শ্রেণি ইংরেজি পাঠশালা';
+      description =
+        'পঞ্চম শ্রেণির ইংরেজি বইয়ের সব গুরুত্বপূর্ণ শব্দের অর্থ, আইপিএ ফোনেটিক্স, বাংলা উচ্চারণ, পদ রূপান্তর ও উদাহরণ বাক্য।';
     } else if (currentPage === 'grammar') {
       title = 'ব্যাকরণ সহায়িকা (Grammar & Language Focus) - ৫ম শ্রেণি ইংরেজি পাঠশালা';
+      description =
+        'পঞ্চম শ্রেণির ২০টি অধ্যায়ের ব্যাকরণ নিয়ম, বিরামচিহ্ন, বাক্যরীতি ও সহজ বাংলা ব্যাখ্যা ও উদাহরণ।';
     } else if (currentPage === 'practice') {
       title = 'অনুশীলন ল্যাব ও কুইজ পরীক্ষা (Quiz Lab) - ৫ম শ্রেণি ইংরেজি পাঠশালা';
+      description =
+        'পঞ্চম শ্রেণির ইংরেজি পরীক্ষার প্রস্তুতিতে এআই চালিত আনলিমিটেড বহুনির্বাচনী কুইজ ও তাৎক্ষণিক মূল্যায়ন ল্যাব।';
     }
 
     document.title = title;
+
+    // Dynamically update meta tags for search engines & social previews
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', description);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', description);
+
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute('content', window.location.href);
+
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.setAttribute('content', title);
+
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc) twitterDesc.setAttribute('content', description);
 
     // Google Analytics & Google Tag Manager tracking
     if (typeof window !== 'undefined') {
@@ -178,12 +206,26 @@ export const App: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 font-bangla space-y-2 mt-12">
+      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 font-bangla space-y-2.5 mt-12 no-print">
         <p className="font-semibold text-slate-700">
-          পঞ্চম শ্রেণি ইংরেজি পাঠশালা • English for Today (২০২৬ সংস্করণ)
+          ৫ম শ্রেণি ইংরেজি পাঠশালা • English for Today (২০২৬ সংস্করণ)
         </p>
-        <p>
+        <p className="text-slate-500">
           জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (NCTB) অনুমোদিত পাঠ্যক্রম অবলম্বনে প্রস্তুতকৃত।
+        </p>
+        <div className="pt-2 border-t border-slate-100 max-w-md mx-auto flex items-center justify-center gap-1.5 text-slate-600 flex-wrap">
+          <span>পরিকল্পনা ও কারিগরি সহায়তায়:</span>
+          <a
+            href="https://jqsafi.github.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 transition-colors font-english"
+          >
+            Shafayat Hossain
+          </a>
+        </div>
+        <p className="text-[11px] text-slate-400">
+          © {new Date().getFullYear()} সর্বস্বত্ব সংরক্ষিত • শিক্ষা ও জনকল্যাণে উন্মুক্ত
         </p>
       </footer>
 
