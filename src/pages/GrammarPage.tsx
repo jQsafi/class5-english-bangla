@@ -267,7 +267,7 @@ export const GrammarPage: React.FC = () => {
           <Filter size={13} />
           <span>ব্যাকরণ বিভাগ অনুযায়ী ফিল্টার করুন:</span>
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex flex-wrap items-center gap-2">
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.key;
             const count =
@@ -281,16 +281,16 @@ export const GrammarPage: React.FC = () => {
               <button
                 key={cat.key}
                 onClick={() => setSelectedCategory(cat.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-200'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 hover:border-slate-300 border border-slate-200'
                 }`}
               >
                 <span className="font-bangla">{cat.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-english font-semibold leading-none ${
+                    isSelected ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600'
                   }`}
                 >
                   {count}
