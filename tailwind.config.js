@@ -7,8 +7,24 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        bangla: ['"Hind Siliguri"', '"Noto Sans Bengali"', 'sans-serif'],
-        english: ['"Outfit"', '"Inter"', 'sans-serif'],
+        bangla: [
+          '"Noto Sans Bengali"',
+          '"Kohinoor Bangla"',
+          '"Bangla Sangam MN"',
+          '"SolaimanLipi"',
+          '"Kalpurush"',
+          '"Hind Siliguri"',
+          'system-ui',
+          'sans-serif',
+        ],
+        english: [
+          '"Outfit"',
+          '"Noto Sans Bengali"',
+          '"Inter"',
+          'system-ui',
+          '-apple-system',
+          'sans-serif',
+        ],
       },
     },
   },
