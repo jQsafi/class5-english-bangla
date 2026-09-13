@@ -32,6 +32,13 @@ function getDefaultKey(): string {
   return KEY_CODES.map(c => String.fromCharCode(c)).join('');
 }
 
+export const GROQ_CANDIDATE_MODELS = [
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'groq/compound-mini',
+  'groq/compound',
+];
+
 export async function sendChatMessage(messages: ChatMessage[], apiKey?: string): Promise<string> {
   const key =
     apiKey ||
@@ -51,16 +58,9 @@ export async function sendChatMessage(messages: ChatMessage[], apiKey?: string):
     return `**স্বাগতম বন্ধু!** 👋 আমি তোমার **English Buddy** (স্মার্ট এআই শিক্ষক)।\n\nতুমি আমাকে ৫ম শ্রেণির ইংরেজি বইয়ের যেকোনো ইউনিট, শব্দের অর্থ, ব্যাকরণ (Grammar) বা বাক্য তৈরি নিয়ে প্রশ্ন করতে পারো!\n\n*(আরও দ্রুত ও পূর্ণাঙ্গ এআই উত্তরের জন্য উপরে সেটিংস থেকে তোমার বিনামূল্যে পাওয়া Groq API Key যুক্ত করতে পারো।)*`;
   }
 
-  const candidateModels = [
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
-    'llama-3.3-70b-versatile',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -180,15 +180,9 @@ Rules:
 
 Output JSON only without extra conversational text.`;
 
-  const candidateModels = [
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -200,13 +194,18 @@ Output JSON only without extra conversational text.`;
           model,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.2,
-          max_tokens: 600,
+          max_tokens: 800,
         }),
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        lastError = err?.error?.message || `Status ${response.status}`;
+        const rawMsg = err?.error?.message || `Status ${response.status}`;
+        if (rawMsg.includes('OTPM') || rawMsg.includes('rate_limit') || response.status === 429) {
+          lastError = 'সার্ভার কিছুটা ব্যস্ত আছে। কয়েক মুহূর্ত অপেক্ষা করে পুনরায় চেষ্টা করুন।';
+        } else {
+          lastError = rawMsg;
+        }
         continue;
       }
 
@@ -291,15 +290,9 @@ Each object must have:
 
 Do not include markdown or conversational prefixes, output raw JSON array only.`;
 
-  const candidateModels = [
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -317,7 +310,12 @@ Do not include markdown or conversational prefixes, output raw JSON array only.`
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        lastError = err?.error?.message || `Status ${response.status}`;
+        const rawMsg = err?.error?.message || `Status ${response.status}`;
+        if (rawMsg.includes('OTPM') || rawMsg.includes('rate_limit') || response.status === 429) {
+          lastError = 'সার্ভার কিছুটা ব্যস্ত আছে। কয়েক মুহূর্ত অপেক্ষা করে পুনরায় চেষ্টা করুন।';
+        } else {
+          lastError = rawMsg;
+        }
         continue;
       }
 
@@ -394,15 +392,9 @@ Rules:
 
 Output raw JSON object only without markdown backticks or conversational filler.`;
 
-  const candidateModels = [
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -420,7 +412,12 @@ Output raw JSON object only without markdown backticks or conversational filler.
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        lastError = err?.error?.message || `Status ${response.status}`;
+        const rawMsg = err?.error?.message || `Status ${response.status}`;
+        if (rawMsg.includes('OTPM') || rawMsg.includes('rate_limit') || response.status === 429) {
+          lastError = 'সার্ভার কিছুটা ব্যস্ত আছে। কয়েক মুহূর্ত অপেক্ষা করে পুনরায় চেষ্টা করুন।';
+        } else {
+          lastError = rawMsg;
+        }
         continue;
       }
 
@@ -515,16 +512,9 @@ Important rules:
 - "questionBn" and "explanationBn" must be clear, natural Bengali.
 - Output ONLY the valid JSON array directly. Do NOT include markdown backticks or commentary.`;
 
-  const candidateModels = [
-    'openai/gpt-oss-120b',
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-20b',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -535,14 +525,19 @@ Important rules:
         body: JSON.stringify({
           model,
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.6,
-          max_tokens: 2500,
+          temperature: 0.5,
+          max_tokens: 1800,
         }),
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        lastError = err?.error?.message || `Status ${response.status}`;
+        const rawMsg = err?.error?.message || `Status ${response.status}`;
+        if (rawMsg.includes('OTPM') || rawMsg.includes('rate_limit') || response.status === 429) {
+          lastError = 'সার্ভার কিছুটা ব্যস্ত আছে। কয়েক মুহূর্ত অপেক্ষা করে পুনরায় চেষ্টা করুন।';
+        } else {
+          lastError = rawMsg;
+        }
         continue;
       }
 
@@ -674,16 +669,9 @@ Requirements:
 - "composition" must have 5 guiding questions and a 5-6 sentence model paragraph.
 - Output ONLY valid JSON directly without markdown code fences or conversational prefixes.`;
 
-  const candidateModels = [
-    'openai/gpt-oss-120b',
-    'qwen/qwen3.8-27b',
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-20b',
-  ];
-
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of GROQ_CANDIDATE_MODELS) {
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -695,13 +683,18 @@ Requirements:
           model,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.5,
-          max_tokens: 3000,
+          max_tokens: 2500,
         }),
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        lastError = err?.error?.message || `Status ${response.status}`;
+        const rawMsg = err?.error?.message || `Status ${response.status}`;
+        if (rawMsg.includes('OTPM') || rawMsg.includes('rate_limit') || response.status === 429) {
+          lastError = 'সার্ভার কিছুটা ব্যস্ত আছে। কয়েক মুহূর্ত অপেক্ষা করে পুনরায় চেষ্টা করুন।';
+        } else {
+          lastError = rawMsg;
+        }
         continue;
       }
 
