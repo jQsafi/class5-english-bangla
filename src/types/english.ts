@@ -91,6 +91,9 @@ export interface QuizQuestion {
   correctAnswer: string;
   explanation: string;
   explanationBn: string;
+  source?: 'curriculum' | 'ai';
+  topic?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface UnitData {

@@ -1,4 +1,4 @@
-import { VocabularyItem, GrammarRule } from '../types/english';
+import { VocabularyItem, GrammarRule, QuizQuestion } from '../types/english';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -423,5 +423,127 @@ Output raw JSON object only without markdown backticks or conversational filler.
 
   throw new Error(lastError || 'ব্যাকরণ এআই সংযোগে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
 }
+
+export interface GenerateQuizParams {
+  unitId?: number | 'all';
+  topic?: string;
+  count?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  customApiKey?: string;
+}
+
+/**
+ * AI Quiz Generator:
+ * Creates fresh, curriculum-aligned multiple choice questions on demand using Groq LLM.
+ */
+export async function generateQuizQuestions(
+  params: GenerateQuizParams = {}
+): Promise<QuizQuestion[]> {
+  const {
+    unitId = 'all',
+    topic = 'General Model Test',
+    count = 5,
+    difficulty = 'medium',
+    customApiKey,
+  } = params;
+
+  const key =
+    customApiKey ||
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    localStorage.getItem('class5_groq_key') ||
+    getDefaultKey();
+
+  const unitDesc =
+    unitId === 'all'
+      ? 'across all Class 5 NCTB textbook units (1 to 20)'
+      : `specifically for Unit ${unitId}`;
+
+  const prompt = `You are an expert elementary English teacher creating a multiple-choice practice quiz for Class 5 students in Bangladesh (NCTB 2026 syllabus).
+Generate exactly ${count} distinct, high-quality multiple choice questions (MCQs) ${unitDesc}, covering the topic: "${topic}" at ${difficulty} difficulty level.
+
+Strict Requirements:
+1. Each question must be suitable for 9-11 year old elementary students.
+2. Return ONLY a single raw JSON array containing ${count} question objects without any markdown formatting or explanations.
+3. Each question object must strictly follow this JSON schema:
+[
+  {
+    "id": "ai-quiz-${Date.now()}-1",
+    "unitId": ${unitId === 'all' ? 1 : unitId},
+    "unitTitle": "Unit ${unitId === 'all' ? 'Model Test' : unitId}: ${topic}",
+    "question": "What is the past tense of 'see'?",
+    "questionBn": "'see' শব্দের অতীত কাল (Past tense) কোনটি?",
+    "type": "mcq",
+    "options": ["saw", "seen", "seeing", "seed"],
+    "correctAnswer": "saw",
+    "explanation": "'saw' is the irregular past form of 'see'.",
+    "explanationBn": "'see' একটি Irregular Verb, এর অতীত রূপ হলো 'saw'।",
+    "difficulty": "${difficulty}"
+  }
+]
+Important rules:
+- "correctAnswer" must EXACTLY match one of the items inside "options" array.
+- "options" must be 4 distinct choices.
+- "questionBn" and "explanationBn" must be clear, natural Bengali.
+- Output ONLY the valid JSON array directly. Do NOT include markdown backticks or commentary.`;
+
+  const candidateModels = [
+    'qwen/qwen3.8-27b',
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-120b',
+  ];
+
+  let lastError = '';
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.6,
+          max_tokens: 2500,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        lastError = err?.error?.message || `Status ${response.status}`;
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      const parsed = extractJson(content);
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((q: any, idx: number) => ({
+          id: `ai-quiz-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          unitId: typeof q.unitId === 'number' ? q.unitId : unitId === 'all' ? (idx % 20) + 1 : unitId,
+          unitTitle: q.unitTitle || `Unit ${unitId === 'all' ? (idx % 20) + 1 : unitId}: ${topic}`,
+          question: q.question || 'English question',
+          questionBn: q.questionBn || '',
+          type: 'mcq',
+          options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ['A', 'B', 'C', 'D'],
+          correctAnswer: q.correctAnswer || (q.options ? q.options[0] : 'A'),
+          explanation: q.explanation || '',
+          explanationBn: q.explanationBn || '',
+          source: 'ai',
+          topic,
+          difficulty,
+        }));
+      }
+    } catch (err: any) {
+      lastError = err.message || String(err);
+    }
+  }
+
+  throw new Error(lastError || 'এআই কুইজ প্রশ্ন তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+}
+
 
 
