@@ -1,4 +1,4 @@
-import { VocabularyItem, GrammarRule, QuizQuestion } from '../types/english';
+import { VocabularyItem, GrammarRule, QuizQuestion, CreativeExamPassage } from '../types/english';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -543,6 +543,171 @@ Important rules:
   }
 
   throw new Error(lastError || 'এআই কুইজ প্রশ্ন তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+}
+
+export interface GenerateCreativeExamParams {
+  unitId: number;
+  unitTitle: string;
+  passageType?: 'seen' | 'unseen';
+  customApiKey?: string;
+}
+
+/**
+ * AI Creative Exam Generator:
+ * Generates an authentic Class 5 terminal exam question paper based on NCTB curriculum:
+ * Passage + Matching (5m) + True/False (6m) + Short Questions (10m) + Short Composition (10m).
+ */
+export async function generateCreativeExam(
+  params: GenerateCreativeExamParams
+): Promise<CreativeExamPassage> {
+  const {
+    unitId,
+    unitTitle,
+    passageType = 'seen',
+    customApiKey,
+  } = params;
+
+  const key =
+    customApiKey ||
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    localStorage.getItem('class5_groq_key') ||
+    getDefaultKey();
+
+  const passageTypeDesc =
+    passageType === 'seen'
+      ? `based closely on the textbook themes, characters, or dialogues of ${unitTitle}`
+      : `an unseen but age-appropriate story or informative passage aligned with the vocabulary level of Class 5 (Grade 5) students`;
+
+  const prompt = `You are a senior primary school English exam moderator in Bangladesh (NCTB 2026 syllabus).
+Create a complete Creative Passage Exam for Class 5 students based on: ${unitTitle} (${passageTypeDesc}).
+
+Return strictly a single raw JSON object conforming to this exact structure:
+{
+  "id": "ai-creative-${unitId}-${Date.now()}",
+  "unitId": ${unitId},
+  "unitTitle": "${unitTitle}",
+  "passageType": "${passageType}",
+  "passageTitle": "Title of the passage in English",
+  "passageText": "A cohesive, interesting 8 to 12 sentence passage suitable for 10-year-old 5th grade students.",
+  "passageTextBn": "Accurate, fluent Bengali translation of the full passage.",
+  "matching": [
+    {"word": "Word 1", "meaning": "English meaning definition 1", "distractors": ["Distractor A", "Distractor B"]},
+    {"word": "Word 2", "meaning": "English meaning definition 2"},
+    {"word": "Word 3", "meaning": "English meaning definition 3"},
+    {"word": "Word 4", "meaning": "English meaning definition 4"},
+    {"word": "Word 5", "meaning": "English meaning definition 5"}
+  ],
+  "trueFalse": [
+    {
+      "statement": "Statement 1 based on passage",
+      "statementBn": "বাংলা অনুবাদ",
+      "isTrue": true,
+      "explanationBn": "বাংলায় ব্যাখ্যা"
+    },
+    {
+      "statement": "False statement 2 based on passage",
+      "statementBn": "বাংলা অনুবাদ",
+      "isTrue": false,
+      "correctAnswer": "Corrected true statement",
+      "explanationBn": "বাংলায় ব্যাখ্যা"
+    }
+  ],
+  "shortQuestions": [
+    {
+      "question": "Question 1 (e.g. Who / What / Where / When / Why / How)?",
+      "questionBn": "বাংলা অনুবাদ",
+      "modelAnswer": "Complete grammatical answer in 1-2 sentences.",
+      "modelAnswerBn": "মডেল উত্তরের বাংলা অর্থ",
+      "marks": 2
+    }
+  ],
+  "composition": {
+    "title": "Title of Short Composition",
+    "titleBn": "বাংলা শিরোনাম",
+    "instructions": "Write at least 5 sentences about [Topic] answering the questions below.",
+    "guidingQuestions": [
+      "Question (a)?",
+      "Question (b)?",
+      "Question (c)?",
+      "Question (d)?",
+      "Question (e)?"
+    ],
+    "modelParagraph": "A well-written 5 to 6 sentence model composition answering all the guiding questions.",
+    "modelParagraphBn": "রচনার সহজ বাংলা অনুবাদ"
+  }
+}
+
+Requirements:
+- "matching" must have 5 words from the passage.
+- "trueFalse" must have 6 items (3 true, 3 false).
+- "shortQuestions" must have 5 questions covering Wh-questions (Who, What, Where, When, Why, How).
+- "composition" must have 5 guiding questions and a 5-6 sentence model paragraph.
+- Output ONLY valid JSON directly without markdown code fences or conversational prefixes.`;
+
+  const candidateModels = [
+    'qwen/qwen3.8-27b',
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-120b',
+  ];
+
+  let lastError = '';
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.5,
+          max_tokens: 3000,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        lastError = err?.error?.message || `Status ${response.status}`;
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      const parsed = extractJson(content);
+
+      if (parsed && parsed.passageText) {
+        return {
+          id: `ai-creative-${unitId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          unitId,
+          unitTitle,
+          passageType,
+          passageTitle: parsed.passageTitle || `${unitTitle} Passage`,
+          passageText: parsed.passageText,
+          passageTextBn: parsed.passageTextBn || '',
+          matching: Array.isArray(parsed.matching) ? parsed.matching : [],
+          trueFalse: Array.isArray(parsed.trueFalse) ? parsed.trueFalse : [],
+          shortQuestions: Array.isArray(parsed.shortQuestions) ? parsed.shortQuestions : [],
+          composition: parsed.composition || {
+            title: `Composition on ${unitTitle}`,
+            titleBn: 'সংক্ষিপ্ত অনুচ্ছেদ',
+            instructions: 'Write 5 sentences about this topic.',
+            guidingQuestions: [],
+            modelParagraph: 'This is a model paragraph.',
+            modelParagraphBn: 'এটি একটি নমুনা অনুচ্ছেদ।',
+          },
+          source: 'ai',
+          createdAt: Date.now(),
+        };
+      }
+    } catch (err: any) {
+      lastError = err.message || String(err);
+    }
+  }
+
+  throw new Error(lastError || 'এআই সৃজনশীল প্রশ্নপত্র তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
 }
 
 

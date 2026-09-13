@@ -96,6 +96,53 @@ export interface QuizQuestion {
   difficulty?: 'easy' | 'medium' | 'hard';
 }
 
+export interface CreativeMatchingItem {
+  word: string;
+  meaning: string;
+  distractors?: string[];
+}
+
+export interface CreativeTrueFalseItem {
+  statement: string;
+  statementBn?: string;
+  isTrue: boolean;
+  correctAnswer?: string;
+  explanationBn: string;
+}
+
+export interface CreativeShortQuestion {
+  question: string;
+  questionBn?: string;
+  modelAnswer: string;
+  modelAnswerBn: string;
+  marks?: number;
+}
+
+export interface CreativeComposition {
+  title: string;
+  titleBn: string;
+  instructions: string;
+  guidingQuestions: string[];
+  modelParagraph: string;
+  modelParagraphBn: string;
+}
+
+export interface CreativeExamPassage {
+  id: string;
+  unitId: number;
+  unitTitle: string;
+  passageType: 'seen' | 'unseen';
+  passageTitle: string;
+  passageText: string;
+  passageTextBn: string;
+  matching: CreativeMatchingItem[];
+  trueFalse: CreativeTrueFalseItem[];
+  shortQuestions: CreativeShortQuestion[];
+  composition: CreativeComposition;
+  source?: 'curriculum' | 'ai';
+  createdAt?: number;
+}
+
 export interface UnitData {
   id: number;
   unitNumber: number;
@@ -110,4 +157,5 @@ export interface UnitData {
   vocabulary: VocabularyItem[];
   grammar: GrammarRule[];
   quizzes: QuizQuestion[];
+  creativeExam?: CreativeExamPassage;
 }
