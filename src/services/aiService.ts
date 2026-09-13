@@ -132,20 +132,21 @@ export async function lookupDictionaryWord(
   const prompt = `You are an expert bilingual English-Bengali lexicographer and teacher for Bangladeshi Class 5 students (NCTB English for Today curriculum).
 For the word or phrase "${query.trim()}", return a comprehensive, student-friendly dictionary entry formatted strictly as a single valid JSON object.
 Rules:
-1. "word": canonical English word in lowercase (if input is Bengali, find the best corresponding English word).
+1. "word": If the query is a phrase like "futuristic fiction", identify the primary headword suitable for elementary students (e.g. "futuristic" or "fiction"), OR provide the clean headword.
 2. "phonetic": accurate IPA phonetic transcription enclosed in slashes, e.g. /kəˈreɪdʒəs/.
-3. "partOfSpeech": "noun" | "verb" | "adjective" | "adverb" | "preposition" | "conjunction" | "pronoun".
-4. "meaningBn": clear, accurate Bengali meaning in Bangla script.
-5. "meaningEn": simple, easy English definition suitable for Grade 5 learners.
-6. "forms": object containing related forms if they exist:
-   - "noun": noun form or ""
-   - "verb": verb form or ""
-   - "adjective": adjective form or ""
-   - "adverb": adverb form or ""
-7. "synonyms": array of 2 to 4 simple, standard synonyms.
-8. "antonyms": array of 1 to 3 simple, standard antonyms.
+3. "partOfSpeech": must be one of: "noun" | "verb" | "adjective" | "adverb" | "preposition" | "conjunction" | "pronoun" | "phrase".
+4. "meaningBn": clear, pure Bengali meaning in simple Bangla script (avoid untranslated words like "ক্লাসিক").
+5. "meaningEn": simple, clear English definition suitable for Grade 5 elementary learners.
+6. "forms": object containing related forms strictly derived from the exact same root word:
+   - "noun": related noun form or ""
+   - "verb": related verb form or ""
+   - "adjective": related adjective form or ""
+   - "adverb": related adverb form or ""
+   Do NOT mix forms from different words.
+7. "synonyms": array of 2 to 4 simple, standard elementary synonyms (prefer single words).
+8. "antonyms": array of 1 to 3 simple, standard elementary antonyms (prefer single words).
 9. "example": a simple, grammatically standard English sentence suitable for Class 5 students.
-10. "exampleBn": natural, fluent Bengali translation of the example sentence.
+10. "exampleBn": natural, fluent Bengali translation in simple, pure Bengali.
 
 Output JSON only without extra conversational text.`;
 
@@ -183,11 +184,25 @@ Output JSON only without extra conversational text.`;
       const content = data.choices?.[0]?.message?.content || '';
       const parsed = extractJson(content);
 
+      const rawPos = String(parsed.partOfSpeech || 'noun').toLowerCase().trim();
+      const cleanPos =
+        rawPos.includes('noun') && rawPos.includes('phrase') ? 'noun phrase' :
+        rawPos.includes('noun') ? 'noun' :
+        rawPos.includes('verb') && rawPos.includes('phrase') ? 'verb phrase' :
+        rawPos.includes('verb') ? 'verb' :
+        rawPos.includes('adj') ? 'adjective' :
+        rawPos.includes('adv') ? 'adverb' :
+        rawPos.includes('phrase') ? 'phrase' :
+        rawPos.includes('prep') ? 'preposition' :
+        rawPos.includes('conj') ? 'conjunction' :
+        rawPos.includes('pron') ? 'pronoun' :
+        rawPos;
+
       const item: VocabularyItem = {
         id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         word: (parsed.word || query).trim().toLowerCase(),
         phonetic: parsed.phonetic || '',
-        partOfSpeech: parsed.partOfSpeech || 'noun',
+        partOfSpeech: cleanPos,
         meaningBn: parsed.meaningBn || '',
         meaningEn: parsed.meaningEn || '',
         forms: {

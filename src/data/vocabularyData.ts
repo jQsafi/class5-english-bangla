@@ -51,7 +51,10 @@ export const vocabularyData: VocabularyItem[] = [
     "unitId": 1,
     "unitTitle": "At the Library",
     "source": "textbook",
-    "synonyms": ["sci-fi", "futuristic fiction"],
+    "forms": {
+      "noun": "science fiction"
+    },
+    "synonyms": ["sci-fi", "fantasy", "fiction"],
     "antonyms": ["non-fiction"]
   },
   {
