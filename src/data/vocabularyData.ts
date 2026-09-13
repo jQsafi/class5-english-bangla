@@ -113,6 +113,7 @@ export const vocabularyData: VocabularyItem[] = [
     "id": "u2-v2",
     "word": "swarm",
     "phonetic": "/swɔːm/",
+    "pronunciationBn": "সোয়র্ম",
     "partOfSpeech": "noun",
     "meaningBn": "কীটপতঙ্গ বা প্রজাপতির দল / ঝাঁক",
     "meaningEn": "A large or dense group of insects or flying creatures",

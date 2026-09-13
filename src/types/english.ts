@@ -39,6 +39,7 @@ export interface VocabularyItem {
   id: string;
   word: string;
   phonetic: string;
+  pronunciationBn?: string;
   partOfSpeech: 'noun' | 'verb' | 'adjective' | 'adverb' | 'preposition' | 'conjunction' | 'pronoun' | string;
   meaningBn: string;
   meaningEn: string;

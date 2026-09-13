@@ -133,20 +133,21 @@ export async function lookupDictionaryWord(
 For the word or phrase "${query.trim()}", return a comprehensive, student-friendly dictionary entry formatted strictly as a single valid JSON object.
 Rules:
 1. "word": If the query is a phrase like "futuristic fiction", identify the primary headword suitable for elementary students (e.g. "futuristic" or "fiction"), OR provide the clean headword.
-2. "phonetic": accurate IPA phonetic transcription enclosed in slashes, e.g. /kəˈreɪdʒəs/.
-3. "partOfSpeech": must be one of: "noun" | "verb" | "adjective" | "adverb" | "preposition" | "conjunction" | "pronoun" | "phrase".
-4. "meaningBn": clear, pure Bengali meaning in simple Bangla script (avoid untranslated words like "ক্লাসিক").
-5. "meaningEn": simple, clear English definition suitable for Grade 5 elementary learners.
-6. "forms": object containing related forms strictly derived from the exact same root word:
+2. "phonetic": accurate IPA phonetic transcription enclosed in slashes, e.g. /swɔːm/ or /kəˈreɪdʒəs/.
+3. "pronunciationBn": natural, easy-to-read Bengali phonetic pronunciation for elementary students (e.g. "সোয়র্ম", "কারেজাস", "ওয়ান্ডারফুল", "লাইব্রেরি").
+4. "partOfSpeech": must be one of: "noun" | "verb" | "adjective" | "adverb" | "preposition" | "conjunction" | "pronoun" | "phrase".
+5. "meaningBn": clear, pure Bengali meaning in simple Bangla script (avoid untranslated words like "ক্লাসিক").
+6. "meaningEn": simple, clear English definition suitable for Grade 5 elementary learners.
+7. "forms": object containing related forms strictly derived from the exact same root word:
    - "noun": related noun form or ""
    - "verb": related verb form or ""
    - "adjective": related adjective form or ""
    - "adverb": related adverb form or ""
    Do NOT mix forms from different words.
-7. "synonyms": array of 2 to 4 simple, standard elementary synonyms (prefer single words).
-8. "antonyms": array of 1 to 3 simple, standard elementary antonyms (prefer single words).
-9. "example": a simple, grammatically standard English sentence suitable for Class 5 students.
-10. "exampleBn": natural, fluent Bengali translation in simple, pure Bengali.
+8. "synonyms": array of 2 to 4 simple, standard elementary synonyms (prefer single words).
+9. "antonyms": array of 1 to 3 simple, standard elementary antonyms (prefer single words).
+10. "example": a simple, grammatically standard English sentence suitable for Class 5 students.
+11. "exampleBn": natural, fluent Bengali translation in simple, pure Bengali.
 
 Output JSON only without extra conversational text.`;
 
@@ -202,6 +203,7 @@ Output JSON only without extra conversational text.`;
         id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         word: (parsed.word || query).trim().toLowerCase(),
         phonetic: parsed.phonetic || '',
+        pronunciationBn: parsed.pronunciationBn || '',
         partOfSpeech: cleanPos,
         meaningBn: parsed.meaningBn || '',
         meaningEn: parsed.meaningEn || '',
@@ -248,6 +250,7 @@ Return ONLY a valid JSON array of objects.
 Each object must have:
 - "word": string
 - "phonetic": string (e.g. /.../)
+- "pronunciationBn": string (easy Bengali phonetic pronunciation, e.g. "সোয়র্ম", "ওয়ান্ডারফুল")
 - "partOfSpeech": "noun" | "verb" | "adjective" | "adverb"
 - "meaningBn": string (Bengali meaning)
 - "meaningEn": string (simple English definition)
@@ -301,6 +304,7 @@ Do not include markdown or conversational prefixes, output raw JSON array only.`
         id: `ai-theme-${Date.now()}-${idx}`,
         word: String(parsed.word || '').trim().toLowerCase(),
         phonetic: parsed.phonetic || '',
+        pronunciationBn: parsed.pronunciationBn || '',
         partOfSpeech: parsed.partOfSpeech || 'noun',
         meaningBn: parsed.meaningBn || '',
         meaningEn: parsed.meaningEn || '',

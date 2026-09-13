@@ -35,6 +35,29 @@ const POS_LABELS: Record<string, { en: string; bn: string; color: string }> = {
   idiom: { en: 'Idiom', bn: 'বাগধারা', color: 'bg-purple-50 text-purple-700 border-purple-200' },
 };
 
+const BANGLA_PRONUNCIATION_MAP: Record<string, string> = {
+  swarm: 'সোয়র্ম',
+  neighbourhood: 'নেইবারহুড',
+  biography: 'বায়োগ্রাফি',
+  'science fiction': 'সায়েন্স ফিকশন',
+  borrow: 'বরো',
+  wonderful: 'ওয়ান্ডারফুল',
+  enclose: 'ইনক্লোজ',
+  ditch: 'ডিচ',
+  butterflies: 'বাটারফ্লাইজ',
+  garden: 'গার্ডেন',
+  library: 'লাইব্রেরি',
+  courageous: 'কারেজাস',
+  hardworking: 'হার্ডওয়ার্কিং',
+  generous: 'জেনারাস',
+  curious: 'কিউরিয়াস',
+  friendly: 'ফ্রেন্ডলি',
+  patient: 'পেশেন্ট',
+  honest: 'অনেস্ট',
+  respectful: 'রেসপেক্টফুল',
+  polite: 'পোলাইট',
+};
+
 const QUICK_THEMES = [
   { id: 'school', label: '🏫 বিদ্যালয় ও শিক্ষা', theme: 'Classroom, school subjects, and learning objects' },
   { id: 'nature', label: '🌿 প্রকৃতি ও পরিবেশ', theme: 'Trees, flowers, weather, animals, and environment' },
@@ -42,6 +65,17 @@ const QUICK_THEMES = [
   { id: 'science', label: '🔬 বিজ্ঞান ও আবিষ্কার', theme: 'Simple science, planets, technology, and discoveries' },
   { id: 'emotions', label: '💖 গুণ ও অনুভূতি', theme: 'Positive character traits, emotions, and friendship' },
 ];
+
+function getBanglaPronunciation(item: VocabularyItem): string {
+  if (item.pronunciationBn && item.pronunciationBn.trim()) {
+    return item.pronunciationBn.trim();
+  }
+  const lower = item.word.toLowerCase().trim();
+  if (BANGLA_PRONUNCIATION_MAP[lower]) {
+    return BANGLA_PRONUNCIATION_MAP[lower];
+  }
+  return '';
+}
 
 export const VocabularyPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -519,11 +553,22 @@ export const VocabularyPage: React.FC = () => {
                       <h3 className="text-2xl font-extrabold text-slate-900 font-english tracking-tight">
                         {item.word}
                       </h3>
-                      {item.phonetic && (
-                        <div className="text-xs text-indigo-600 font-mono font-english mt-0.5 font-medium">
-                          {item.phonetic}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        {getBanglaPronunciation(item) && (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-800 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg font-bangla shadow-2xs">
+                            <span className="text-amber-700/70 font-normal">উচ্চারণ:</span>
+                            <span>{getBanglaPronunciation(item)}</span>
+                          </span>
+                        )}
+                        {item.phonetic && (
+                          <span
+                            className="text-xs text-indigo-700 font-mono bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100 font-medium"
+                            title="আন্তর্জাতিক ফোনেটিক চিহ্ন (International Phonetic Alphabet)"
+                          >
+                            IPA: {item.phonetic}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <AudioButton text={item.word} size="md" />
                   </div>
@@ -721,11 +766,18 @@ export const VocabularyPage: React.FC = () => {
                 <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-english">
                   {currentCard.word}
                 </div>
-                {currentCard.phonetic && (
-                  <div className="text-sm text-indigo-600 font-mono font-english font-medium">
-                    {currentCard.phonetic}
-                  </div>
-                )}
+                <div className="flex flex-wrap justify-center items-center gap-2">
+                  {getBanglaPronunciation(currentCard) && (
+                    <span className="text-sm font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-lg font-bangla shadow-2xs">
+                      উচ্চারণ: {getBanglaPronunciation(currentCard)}
+                    </span>
+                  )}
+                  {currentCard.phonetic && (
+                    <span className="text-xs text-indigo-700 font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 font-medium">
+                      IPA: {currentCard.phonetic}
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-indigo-600 font-semibold pt-2 font-bangla">
                   (অর্থ ও রূপান্তর দেখতে চাপুন)
                 </div>
