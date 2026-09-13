@@ -328,10 +328,10 @@ export const UnitDetailPage: React.FC<UnitDetailPageProps> = ({
       {/* Navigation Tabs */}
       <div className="flex items-center border-b border-slate-200 gap-1 overflow-x-auto no-scrollbar no-print">
         {[
-          { id: 'text', label: 'মূল পাঠ ও সংলাপ (Read & Listen)', icon: BookOpen },
+          { id: 'text', label: 'মূল পাঠ ও সংলাপ', icon: BookOpen },
           { id: 'vocabulary', label: `শব্দার্থ (${unit.vocabulary.length})`, icon: Languages },
-          { id: 'grammar', label: 'গ্রামার সহায়িকা (Grammar)', icon: Sparkles },
-          { id: 'creative', label: 'সৃজনশীল পরীক্ষা (Creative Exam)', icon: GraduationCap, badge: 'মডেল টেস্ট' },
+          { id: 'grammar', label: 'গ্রামার সহায়িকা', icon: Sparkles },
+          { id: 'creative', label: 'সৃজনশীল পরীক্ষা', icon: GraduationCap, badge: 'মডেল টেস্ট' },
           {
             id: 'qa',
             label: `কুইজ মূল্যায়ন (${quizzesList.length})`,
