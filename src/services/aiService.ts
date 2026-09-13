@@ -48,33 +48,51 @@ export async function sendChatMessage(messages: ChatMessage[], apiKey?: string):
     return `**স্বাগতম বন্ধু!** 👋 আমি তোমার **English Buddy** (স্মার্ট এআই শিক্ষক)।\n\nতুমি আমাকে ৫ম শ্রেণির ইংরেজি বইয়ের যেকোনো ইউনিট, শব্দের অর্থ, ব্যাকরণ (Grammar) বা বাক্য তৈরি নিয়ে প্রশ্ন করতে পারো!\n\n*(আরও দ্রুত ও পূর্ণাঙ্গ এআই উত্তরের জন্য উপরে সেটিংস থেকে তোমার বিনামূল্যে পাওয়া Groq API Key যুক্ত করতে পারো।)*`;
   }
 
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key.trim()}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...messages
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
-      }),
-    });
+  const candidateModels = [
+    'qwen/qwen3.8-27b',
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-120b',
+    'llama-3.3-70b-versatile',
+  ];
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API request failed with status ${response.status}`);
+  let lastError = '';
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...messages
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        lastError = err?.error?.message || `API request failed with status ${response.status}`;
+        // If model not found or forbidden, try next candidate model
+        if (response.status === 404 || response.status === 400 || lastError.toLowerCase().includes('model')) {
+          continue;
+        }
+        throw new Error(lastError);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || 'কোনো উত্তর পাওয়া যায়নি। আবার চেষ্টা করো।';
+    } catch (err: any) {
+      lastError = err.message || String(err);
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'কোনো উত্তর পাওয়া যায়নি। আবার চেষ্টা করো।';
-  } catch (err: any) {
-    console.error('Groq AI Error:', err);
-    return `দুঃখিত, এআই সংযোগে সমস্যা হয়েছে: ${err.message || 'নেটওয়ার্ক চেক করুন।'}`;
   }
+
+  console.error('Groq AI Error:', lastError);
+  return `দুঃখিত, এআই সংযোগে সমস্যা হয়েছে: ${lastError || 'নেটওয়ার্ক চেক করুন।'}`;
 }
