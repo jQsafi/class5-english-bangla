@@ -28,17 +28,29 @@ export interface UnitSection {
   audioText?: string;
 }
 
+export interface WordForms {
+  noun?: string;
+  verb?: string;
+  adjective?: string;
+  adverb?: string;
+}
+
 export interface VocabularyItem {
   id: string;
   word: string;
   phonetic: string;
-  partOfSpeech: 'noun' | 'verb' | 'adjective' | 'adverb' | 'preposition' | 'conjunction' | 'pronoun';
+  partOfSpeech: 'noun' | 'verb' | 'adjective' | 'adverb' | 'preposition' | 'conjunction' | 'pronoun' | string;
   meaningBn: string;
   meaningEn: string;
   example: string;
   exampleBn: string;
-  unitId: number;
-  unitTitle: string;
+  unitId?: number;
+  unitTitle?: string;
+  forms?: WordForms;
+  synonyms?: string[];
+  antonyms?: string[];
+  source?: 'textbook' | 'ai' | 'custom';
+  createdAt?: number;
 }
 
 export interface GrammarRule {

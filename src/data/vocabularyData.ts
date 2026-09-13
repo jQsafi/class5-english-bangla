@@ -11,7 +11,14 @@ export const vocabularyData: VocabularyItem[] = [
     "example": "Rupa and her family just moved to this peaceful neighbourhood.",
     "exampleBn": "রূপা এবং তার পরিবার সম্প্রতি এই শান্ত পাড়ায় এসেছে।",
     "unitId": 1,
-    "unitTitle": "At the Library"
+    "unitTitle": "At the Library",
+    "source": "textbook",
+    "forms": {
+      "noun": "neighbourhood",
+      "adjective": "neighbourly"
+    },
+    "synonyms": ["locality", "community", "vicinity"],
+    "antonyms": ["remoteness"]
   },
   {
     "id": "u1-v2",
@@ -23,7 +30,14 @@ export const vocabularyData: VocabularyItem[] = [
     "example": "Omar loves reading biographies of great scientists.",
     "exampleBn": "ওমর মহান বিজ্ঞানীদের জীবনী পড়তে ভালোবাসে।",
     "unitId": 1,
-    "unitTitle": "At the Library"
+    "unitTitle": "At the Library",
+    "source": "textbook",
+    "forms": {
+      "noun": "biography",
+      "adjective": "biographical"
+    },
+    "synonyms": ["life story", "memoir", "profile"],
+    "antonyms": []
   },
   {
     "id": "u1-v3",
@@ -35,7 +49,10 @@ export const vocabularyData: VocabularyItem[] = [
     "example": "Rina finds science fiction books very exciting.",
     "exampleBn": "রিনার কল্পবিজ্ঞান বই পড়তে খুব রোমাঞ্চকর লাগে।",
     "unitId": 1,
-    "unitTitle": "At the Library"
+    "unitTitle": "At the Library",
+    "source": "textbook",
+    "synonyms": ["sci-fi", "futuristic fiction"],
+    "antonyms": ["non-fiction"]
   },
   {
     "id": "u1-v4",
@@ -47,7 +64,14 @@ export const vocabularyData: VocabularyItem[] = [
     "example": "You need a card to borrow books from the public library.",
     "exampleBn": "পাবলিক লাইব্রেরি থেকে বই ধার নিতে একটি কার্ড প্রয়োজন।",
     "unitId": 1,
-    "unitTitle": "At the Library"
+    "unitTitle": "At the Library",
+    "source": "textbook",
+    "forms": {
+      "noun": "borrower",
+      "verb": "borrow"
+    },
+    "synonyms": ["take on loan", "receive"],
+    "antonyms": ["lend", "return", "give back"]
   },
   {
     "id": "u1-v5",
@@ -59,7 +83,16 @@ export const vocabularyData: VocabularyItem[] = [
     "example": "Reading together with friends is a wonderful habit.",
     "exampleBn": "বন্ধুদের সাথে একসাথে বই পড়ার অভ্যাস চমৎকার।",
     "unitId": 1,
-    "unitTitle": "At the Library"
+    "unitTitle": "At the Library",
+    "source": "textbook",
+    "forms": {
+      "noun": "wonder",
+      "verb": "wonder",
+      "adjective": "wonderful",
+      "adverb": "wonderfully"
+    },
+    "synonyms": ["marvelous", "fantastic", "delightful", "splendid"],
+    "antonyms": ["terrible", "dreadful", "awful"]
   },
   {
     "id": "u2-v1",
