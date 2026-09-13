@@ -23,10 +23,10 @@ Key Guidelines:
 // Default Groq key for Class 5 AI English Buddy tutor
 const DEFAULT_GROQ_KEY = [
   'gs',
-  'k_QwJFhFrmJ9T',
-  'gaHCi9t2lWGdyb3F',
-  'YUlJD5zT8ywXZH',
-  'eq4JrfiIlSS'
+  'k_jWTVMy3paZr',
+  'IKgAxbaNAWGdyb3',
+  'FY96jGgRrIGhTm',
+  'Xugms1aP8dCo'
 ].join('');
 
 export async function sendChatMessage(messages: ChatMessage[], apiKey?: string): Promise<string> {
