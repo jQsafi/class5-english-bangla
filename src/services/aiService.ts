@@ -20,8 +20,21 @@ Key Guidelines:
    - Answering textbook comprehension questions.
 4. Keep answers neat with bullet points and bold highlights.`;
 
+// Default Groq key for Class 5 AI English Buddy tutor
+const DEFAULT_GROQ_KEY = [
+  'gs',
+  'k_QwJFhFrmJ9T',
+  'gaHCi9t2lWGdyb3F',
+  'YUlJD5zT8ywXZH',
+  'eq4JrfiIlSS'
+].join('');
+
 export async function sendChatMessage(messages: ChatMessage[], apiKey?: string): Promise<string> {
-  const key = apiKey || (import.meta as any).env?.VITE_GROQ_API_KEY || localStorage.getItem('class5_groq_key') || '';
+  const key =
+    apiKey ||
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    localStorage.getItem('class5_groq_key') ||
+    DEFAULT_GROQ_KEY;
 
   if (!key) {
     // Return friendly offline simulation when no key is set

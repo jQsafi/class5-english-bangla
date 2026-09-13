@@ -2,6 +2,7 @@
   "name": "class5-english-bangla",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://jQsafi.github.io/class5-english-bangla",
   "type": "module",
   "scripts": {
     "dev": "vite",
