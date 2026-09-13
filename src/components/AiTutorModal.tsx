@@ -9,6 +9,217 @@ interface AiTutorModalProps {
   currentUnitTitle?: string;
 }
 
+function parseInline(text: string, isBot: boolean): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+      return (
+        <strong key={index} className={isBot ? 'font-bold text-slate-900' : 'font-bold text-white'}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+      return (
+        <em key={index} className="italic opacity-90">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return (
+        <code
+          key={index}
+          className={
+            isBot
+              ? 'px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-xs border border-indigo-100'
+              : 'px-1.5 py-0.5 rounded bg-white/20 text-white font-mono text-xs'
+          }
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
+export const MarkdownMessage: React.FC<{ content: string; isBot: boolean }> = ({ content, isBot }) => {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  let inList: { type: 'ul' | 'ol'; items: React.ReactNode[] } | null = null;
+
+  const flushList = (key: string | number) => {
+    if (inList) {
+      if (inList.type === 'ul') {
+        elements.push(
+          <ul key={`ul-${key}`} className="space-y-1.5 my-1.5 ml-1">
+            {inList.items}
+          </ul>
+        );
+      } else {
+        elements.push(
+          <ol key={`ol-${key}`} className="space-y-1.5 my-1.5 ml-1">
+            {inList.items}
+          </ol>
+        );
+      }
+      inList = null;
+    }
+  };
+
+  lines.forEach((rawLine, index) => {
+    const trimmed = rawLine.trim();
+
+    if (!trimmed) {
+      flushList(index);
+      return;
+    }
+
+    // Heading ###
+    if (trimmed.startsWith('### ')) {
+      flushList(index);
+      elements.push(
+        <h4
+          key={index}
+          className={`font-bold text-sm sm:text-base mt-2.5 mb-1 ${
+            isBot ? 'text-indigo-900 border-b border-indigo-100 pb-1' : 'text-white'
+          }`}
+        >
+          {parseInline(trimmed.slice(4), isBot)}
+        </h4>
+      );
+      return;
+    }
+
+    // Heading ##
+    if (trimmed.startsWith('## ')) {
+      flushList(index);
+      elements.push(
+        <h3
+          key={index}
+          className={`font-bold text-base sm:text-lg mt-3 mb-1.5 ${
+            isBot ? 'text-indigo-950 border-b border-indigo-100 pb-1' : 'text-white'
+          }`}
+        >
+          {parseInline(trimmed.slice(3), isBot)}
+        </h3>
+      );
+      return;
+    }
+
+    // Heading #
+    if (trimmed.startsWith('# ')) {
+      flushList(index);
+      elements.push(
+        <h2
+          key={index}
+          className={`font-extrabold text-lg sm:text-xl mt-3.5 mb-2 ${
+            isBot ? 'text-indigo-950' : 'text-white'
+          }`}
+        >
+          {parseInline(trimmed.slice(2), isBot)}
+        </h2>
+      );
+      return;
+    }
+
+    // Blockquote >
+    if (trimmed.startsWith('> ')) {
+      flushList(index);
+      elements.push(
+        <div
+          key={index}
+          className={`border-l-4 pl-3 my-1.5 py-1 text-xs sm:text-sm rounded-r ${
+            isBot
+              ? 'border-indigo-400 bg-indigo-50/60 text-slate-700 italic'
+              : 'border-white/60 bg-white/10 text-white italic'
+          }`}
+        >
+          {parseInline(trimmed.slice(2), isBot)}
+        </div>
+      );
+      return;
+    }
+
+    // Unordered bullet list items (- or * or •)
+    const bulletMatch = rawLine.match(/^(\s*)([-*•])\s+(.*)$/);
+    if (bulletMatch) {
+      const indent = bulletMatch[1].length;
+      const text = bulletMatch[3];
+      const isIndented = indent >= 2;
+
+      const itemNode = (
+        <li
+          key={`item-${index}`}
+          className={`flex items-start gap-2 text-xs sm:text-sm leading-relaxed ${
+            isIndented ? 'ml-4 opacity-95' : ''
+          }`}
+        >
+          <span
+            className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+              isBot ? 'bg-indigo-500' : 'bg-white'
+            }`}
+          />
+          <div className="flex-1">{parseInline(text, isBot)}</div>
+        </li>
+      );
+
+      if (!inList || inList.type !== 'ul') {
+        flushList(index);
+        inList = { type: 'ul', items: [itemNode] };
+      } else {
+        inList.items.push(itemNode);
+      }
+      return;
+    }
+
+    // Ordered list item (e.g. 1. or ১. or 1) or ১))
+    const orderedMatch = trimmed.match(/^([0-9১-৯]+[\.\)])\s+(.*)$/);
+    if (orderedMatch) {
+      const numPrefix = orderedMatch[1];
+      const text = orderedMatch[2];
+
+      const itemNode = (
+        <li
+          key={`item-${index}`}
+          className="flex items-start gap-2 text-xs sm:text-sm leading-relaxed"
+        >
+          <span
+            className={`font-semibold shrink-0 select-none ${
+              isBot ? 'text-indigo-700' : 'text-indigo-200'
+            }`}
+          >
+            {numPrefix}
+          </span>
+          <div className="flex-1">{parseInline(text, isBot)}</div>
+        </li>
+      );
+
+      if (!inList || inList.type !== 'ol') {
+        flushList(index);
+        inList = { type: 'ol', items: [itemNode] };
+      } else {
+        inList.items.push(itemNode);
+      }
+      return;
+    }
+
+    // Regular paragraph
+    flushList(index);
+    elements.push(
+      <p key={index} className="text-xs sm:text-sm leading-relaxed my-1">
+        {parseInline(trimmed, isBot)}
+      </p>
+    );
+  });
+
+  flushList('final');
+
+  return <div className="space-y-1 font-bangla">{elements}</div>;
+};
+
 export const AiTutorModal: React.FC<AiTutorModalProps> = ({
   isOpen,
   onClose,
@@ -169,7 +380,7 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
                       : 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap font-bangla">{m.content}</div>
+                  <MarkdownMessage content={m.content} isBot={isBot} />
 
                   {isBot && (
                     <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-end gap-1">
